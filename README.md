@@ -6,3 +6,4 @@ fix: commit 2
 bump-major: test 2
 chore: another commit
 bump_major: test major bump
+chore: junk commit
