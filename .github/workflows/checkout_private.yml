@@ -19,4 +19,4 @@ jobs:
           repository: josephburling/repo_test2
           ref: main
           path: other
-          #ssh-key: ${{secrets.PRIVATE_REPO_DEPLOY_KEY}}
+          ssh-key: ${{secrets.PRIVATE_REPO_DEPLOY_KEY}}
