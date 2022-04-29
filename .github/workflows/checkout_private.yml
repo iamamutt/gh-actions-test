@@ -4,12 +4,18 @@ on:
     branches:
       - develop
 jobs:
-  versioning:
+  checkout-action:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          path: main
+
+      - name: Checkout Other
         id: check-repo
         uses: actions/checkout@v3
         with:
           repository: josephburling/repo_test_2
           ref: main
+          path: other
