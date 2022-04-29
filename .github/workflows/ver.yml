@@ -1,36 +1,45 @@
-# act push
-name: test-version
+# Tasks that require semantic versioning info
+name: semantic-versioning
 on:
   push:
     branches:
-      - 'main'
-  pull_request:
-    branches:
-      - 'main'
+      - main
+
 
 jobs:
-  versioning:
+  get_version:
     runs-on: ubuntu-latest
-
     steps:
       - name: 🛎️  Checkout repository
         id: check-repo
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - id: set-datetime
+        run: echo "::set-output name=datetime::$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+        shell: bash
+
+      - id: set-repo-lower
+        run: echo "::set-output name=repo_lower::$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')"
+        shell: bash
 
       - name: 🏷️  Get new semantic version string
         id: semver_tag
         uses: mathieudutour/github-tag-action@v6.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          release_branches: main,master,release
+          release_branches: main
           pre_release_branches: develop,dev,wip
           fetch_all_tags: true
           dry_run: true
           default_bump: false
           custom_release_rules: |
-            force_bump_patch:patch,force_bump_minor:minor,force_bump_major:major
+            force_bump_patch:patch,
+            force_bump_minor:minor,
+            force_bump_major:major
 
-      - id: correct-version
+      - id: correct-no-version
         run: |
           if [ -z "${{ steps.semver_tag.outputs.new_tag }}" ]; then
             echo "::set-output name=new_tag::${{ steps.semver_tag.outputs.previous_tag }}"
@@ -39,27 +48,101 @@ jobs:
             echo "::set-output name=new_tag::${{ steps.semver_tag.outputs.new_tag }}"
             echo "::set-output name=new_version::${{ steps.semver_tag.outputs.new_version }}"
           fi
+          RELEASE_ONLY="['$(echo "major,minor,patch" | sed "s/\\,/\\','/g" | sed 's/ //g')']"
+          echo "::set-output name=release_array::${RELEASE_ONLY}"
+
 
     outputs:
-      new_tag: ${{ steps.correct-version.outputs.new_tag }}
-      new_version: ${{ steps.correct-version.outputs.new_version }}
+      new_tag: ${{ steps.correct-no-version.outputs.new_tag }}
+      new_version: ${{ steps.correct-no-version.outputs.new_version }}
       previous_tag: ${{ steps.semver_tag.outputs.previous_tag }}
       previous_version: ${{ steps.semver_tag.outputs.previous_version }}
       release_type: ${{ steps.semver_tag.outputs.release_type }}
       changelog: ${{ steps.semver_tag.outputs.changelog }}
-      repo_lower: ${{ steps.semver_tag.outputs.repo_lower }}
-      datetime: ${{ steps.semver_tag.outputs.datetime }}
+      repo_lower: ${{ steps.set-repo-lower.outputs.repo_lower }}
+      datetime: ${{ steps.set-datetime.outputs.datetime }}
+      release_array: ${{ steps.correct-no-version.outputs.release_array }}
 
-
-  print-info:
+  push_version_file:
+    needs: get_version
+    if: |
+      always() &&
+      (needs.get_version.result == 'success') &&
+      (github.ref_name == 'main')
     runs-on: ubuntu-latest
-    needs: versioning
     steps:
-      - run: |
-          echo "${{needs.versioning.outputs.new_tag}}"
-          echo "${{needs.versioning.outputs.new_version}}"
-          echo "${{needs.versioning.outputs.previous_tag}}"
-          echo "${{needs.versioning.outputs.previous_version}}"
-          echo "${{needs.versioning.outputs.release_type}}"
-          echo "${{needs.versioning.outputs.changelog}}"
-          echo "${{toJSON(github)}}"
+      - name: 🛎️  Checkout repository
+        id: check-repo
+        uses: actions/checkout@v3
+
+      - name: 🐍  Bump python package version
+        run: |
+          PKG_VERSION_FILE=src/*/version.py
+          PREV_PKG_VER=$(grep -Eo "(\"|').*(\"|')$" $PKG_VERSION_FILE | cut -d '"' -f 2 | cut -d "'" -f 2)
+          [[ -z $PREV_PKG_VER ]] && exit 1
+          echo -e "__version__ = \"${{ needs.get_version.outputs.new_version }}\"\n" > $PKG_VERSION_FILE
+        shell: bash
+
+      - name: 📜  Update changelog link
+        run: |
+          LOG_TEXT="${{ needs.get_version.outputs.changelog }}\n"
+          [[ -z "$LOG_TEXT" ]] && exit 0
+          LINE_NUM=$(awk -v pat="# Changelog" '$0~pat{print NR}' "CHANGELOG.md")
+          [[ -z $LINE_NUM ]] && exit 0
+          LINE_NUM=$((LINE_NUM+2))
+          LOG_TEXT=$(echo $LOG_TEXT | cut -b 2-)
+          sed -i "$LINE_NUM i - $LOG_TEXT" "CHANGELOG.md"
+        shell: bash
+
+      - name: Push version changes
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No versioning file changes."
+            exit 0
+          fi
+          echo -e "::debug::Committing and pushing:\n$(git status --porcelain)"
+          git add .
+          git commit --allow-empty-message --no-edit
+          git push origin HEAD:main
+        shell: bash
+
+    outputs:
+      python-version: ${{ steps.use-python.outputs.python-version }}
+
+  create_tag_and_release:
+    needs: [get_version, push_version_file]
+    if: |
+      always() &&
+      (needs.get_version.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🛎️  Checkout repository
+        id: check-repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: 🏷️  Create and push a new semver tag
+        id: push-new-tag
+        shell: bash
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git tag -a ${{ needs.get_version.outputs.new_tag }} --force -m "ci(versioning): tagging ${{ needs.get_version.outputs.new_tag }}:${{ inputs.release_type }}"
+          git push -f origin ${{ needs.get_version.outputs.new_tag }}
+
+      - name: 📦  Create a new release from semver tag
+        id: release-version
+        if: |
+          always() &&
+          (github.ref_name == 'main') &&
+          (!contains('pre', ${{ needs.get_version.outputs.release_type }})) &&
+          (contains(fromJSON(${{ needs.get_version.outputs.release_array }}), ${{ needs.get_version.outputs.release_type }}))
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ needs.get_version.outputs.new_tag }}
+          name: ${{ needs.get_version.outputs.release_type }} release ${{ needs.get_version.outputs.new_version }}
+          body: ${{ needs.get_version.outputs.changelog }}
+          allowUpdates: true
+          generateReleaseNotes: true
