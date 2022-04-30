@@ -83,12 +83,8 @@ jobs:
       - name: 📜  Update changelog link
         run: |
           [[ -z "${{ needs.get_version.outputs.changelog }}" ]] && exit 0
-          LOG_TEXT="${{ needs.get_version.outputs.changelog }}\n"
-          LINE_NUM=$(awk -v pat="# Changelog" '$0~pat{print NR}' "CHANGELOG.md")
-          [[ -z $LINE_NUM ]] && exit 0
-          LINE_NUM=$((LINE_NUM+2))
-          # LOG_TEXT=$(echo $LOG_TEXT | cut -b 2-)
-          sed -i "$LINE_NUM i - $LOG_TEXT" "CHANGELOG.md"
+          [[ ! -f CHANGELOG.md ]] && exit 0
+          sed -i '/Changelog/r'<(printf "\n%s\n" "${{ needs.get_version.outputs.changelog }}" | cut -b 2-) CHANGELOG.md
         shell: bash
 
       - name: Push version changes
@@ -101,7 +97,7 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add .
-          git commit -m "ci(semver): write version and changelog updates"
+          git commit -m "ci(semver): update files with new version information"
           git push origin HEAD:main
         shell: bash
 
