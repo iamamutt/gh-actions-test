@@ -14,3 +14,4 @@ force_bump_minor: something
 chore: commit 1
 chore: commit 2
 force_bump_patch: fix something
+chore: check chore
