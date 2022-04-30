@@ -104,7 +104,7 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add .
-          git commit --allow-empty-message --no-edit
+          git commit -m "semver: write version and changelog updates"
           git push origin HEAD:main
         shell: bash
 
