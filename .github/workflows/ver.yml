@@ -87,7 +87,7 @@ jobs:
           LINE_NUM=$(awk -v pat="# Changelog" '$0~pat{print NR}' "CHANGELOG.md")
           [[ -z $LINE_NUM ]] && exit 0
           LINE_NUM=$((LINE_NUM+2))
-          LOG_TEXT=$(echo $LOG_TEXT | cut -b 2-)
+          # LOG_TEXT=$(echo $LOG_TEXT | cut -b 2-)
           sed -i "$LINE_NUM i - $LOG_TEXT" "CHANGELOG.md"
         shell: bash
 
