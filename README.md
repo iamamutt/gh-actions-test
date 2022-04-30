@@ -10,3 +10,4 @@ chore: junk commit
 fix: test develop branch
 bump_minor
 bump_minor: something
+force_bump_minor: something
