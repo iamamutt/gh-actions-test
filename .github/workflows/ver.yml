@@ -119,14 +119,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      # - name: 🏷️  Create and push a new semver tag
-      #   id: push-new-tag
-      #   shell: bash
-      #   run: |
-      #     git config --local user.email "github-actions[bot]@users.noreply.github.com"
-      #     git config --local user.name "github-actions[bot]"
-      #     git tag -a ${{ needs.get_version.outputs.new_tag }} --force -m "ci(versioning): tagging ${{ needs.get_version.outputs.new_tag }}:${{ inputs.release_type }}"
-      #     git push -f origin ${{ needs.get_version.outputs.new_tag }}
+      - name: 🏷️  Create and push a new semver tag
+        id: push-new-tag
+        shell: bash
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git tag -a ${{ needs.get_version.outputs.new_tag }} --force -m "ci(versioning): tagging ${{ needs.get_version.outputs.new_tag }}:${{ inputs.release_type }}"
+          git push -f origin ${{ needs.get_version.outputs.new_tag }}
 
       # - name: 📦   Create a new release from semver tag
       #   id: release-version
