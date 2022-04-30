@@ -1,5 +1,7 @@
 # Changelog
 
+- # [2.0.0](https://github.com/iamamutt/gh-actions-test/compare/v1.0.1...v2.0.0) (2022-04-30) 
+
 - n
 - n
 - n
