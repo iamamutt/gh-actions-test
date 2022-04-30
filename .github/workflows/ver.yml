@@ -86,8 +86,7 @@ jobs:
           [[ ! -f CHANGELOG.md ]] && exit 0
           NEWSEC_STR="## \`${{ needs.get_version.outputs.new_tag }}\`"
           CHANGELOG_STR=$(sed '1d' <<< "${{ needs.get_version.outputs.changelog }}")
-          echo "show log"
-          echo $(printf "%s" "$CHANGELOG_STR")
+          [[ -z "${CHANGELOG_STR}" ]] && exit 0
           sed -i '/Changelog/r'<(printf "\n%s\n%s\n\n" "$NEWSEC_STR" "$CHANGELOG_STR") CHANGELOG.md
         shell: bash
 
