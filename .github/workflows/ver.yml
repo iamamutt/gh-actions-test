@@ -84,7 +84,9 @@ jobs:
         run: |
           [[ -z "${{ needs.get_version.outputs.changelog }}" ]] && exit 0
           [[ ! -f CHANGELOG.md ]] && exit 0
-          sed -i '/Changelog/r'<(printf "\n%s\n" "${{ needs.get_version.outputs.changelog }}" | cut -b 2-) CHANGELOG.md
+          NEWSEC_STR="## \`${{ needs.get_version.outputs.new_tag }}\`"
+          CHANGELOG_STR=$(sed '1d' <<< "${{ needs.get_version.outputs.changelog }}")
+          sed -i '/Changelog/r'<(printf "\n%s\n%s\n" "$NEWSEC_STR" "$CHANGELOG_STR") CHANGELOG.md
         shell: bash
 
       - name: Push version changes
