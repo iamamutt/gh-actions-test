@@ -34,10 +34,7 @@ jobs:
           fetch_all_tags: true
           dry_run: true
           default_bump: false
-          custom_release_rules: |
-            force_bump_patch:patch,
-            force_bump_minor:minor,
-            force_bump_major:major
+          custom_release_rules: force_bump_patch:patch,force_bump_minor:minor,force_bump_major:major
 
       - id: correct-no-version
         run: |
@@ -85,8 +82,8 @@ jobs:
 
       - name: 📜  Update changelog link
         run: |
+          [[ -z "${{ needs.get_version.outputs.changelog }}" ]] && exit 0
           LOG_TEXT="${{ needs.get_version.outputs.changelog }}\n"
-          [[ -z "$LOG_TEXT" ]] && exit 0
           LINE_NUM=$(awk -v pat="# Changelog" '$0~pat{print NR}' "CHANGELOG.md")
           [[ -z $LINE_NUM ]] && exit 0
           LINE_NUM=$((LINE_NUM+2))
