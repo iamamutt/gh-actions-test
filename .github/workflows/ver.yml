@@ -130,7 +130,7 @@ jobs:
           git tag -a ${{ needs.get_version.outputs.new_tag }} --force -m "ci(versioning): tagging ${{ needs.get_version.outputs.new_tag }}:${{ inputs.release_type }}"
           git push -f origin ${{ needs.get_version.outputs.new_tag }}
 
-      - name: 📦  Create a new release from semver tag
+      - name: 📦   Create a new release from semver tag
         id: release-version
         if: |
           always() &&
