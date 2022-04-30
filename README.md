@@ -11,3 +11,5 @@ fix: test develop branch
 bump_minor
 bump_minor: something
 force_bump_minor: something
+chore: commit 1
+chore: commit 2
