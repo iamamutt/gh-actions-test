@@ -88,7 +88,7 @@ jobs:
           CHANGELOG_STR=$(sed '1d' <<< "${{ needs.get_version.outputs.changelog }}")
           echo "show log"
           echo $(printf "%s" "$CHANGELOG_STR")
-          sed -i '/Changelog/r'<(printf "\n%s\n%s\n" "$NEWSEC_STR" "$CHANGELOG_STR") CHANGELOG.md
+          sed -i '/Changelog/r'<(printf "\n%s\n%s\n\n" "$NEWSEC_STR" "$CHANGELOG_STR") CHANGELOG.md
         shell: bash
 
       - name: Push version changes
@@ -101,7 +101,7 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add .
-          git commit -m "ci(semver): update files with new version information"
+          git commit -m "chore(semver): update files with new version information"
           git push origin HEAD:main
         shell: bash
 
