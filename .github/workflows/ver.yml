@@ -38,15 +38,18 @@ jobs:
 
       - id: correct-no-version
         run: |
+          echo "::set-output name=bumped::false"
           if [ -z "${{ steps.semver_tag.outputs.new_tag }}" ]; then
             echo "::set-output name=new_tag::${{ steps.semver_tag.outputs.previous_tag }}"
             echo "::set-output name=new_version::${{ steps.semver_tag.outputs.previous_version }}"
           else
             echo "::set-output name=new_tag::${{ steps.semver_tag.outputs.new_tag }}"
             echo "::set-output name=new_version::${{ steps.semver_tag.outputs.new_version }}"
+            [[ "${{ steps.semver_tag.outputs.new_tag }}"="${{ steps.semver_tag.outputs.previous_tag }}" ]] || echo "::set-output name=bumped::true"
           fi
           RELEASE_ONLY="['$(echo "major,minor,patch" | sed "s/\\,/\\','/g" | sed 's/ //g')']"
           echo "::set-output name=release_array::${RELEASE_ONLY}"
+        shell: bash
 
 
     outputs:
@@ -59,13 +62,15 @@ jobs:
       repo_lower: ${{ steps.set-repo-lower.outputs.repo_lower }}
       datetime: ${{ steps.set-datetime.outputs.datetime }}
       release_array: ${{ steps.correct-no-version.outputs.release_array }}
+      bumped: ${{ steps.correct-no-version.outputs.bumped }}
 
   push_version_file:
     needs: get_version
-    # if: |
-    #   always() &&
-    #   (needs.get_version.result == 'success') &&
-    #   (github.ref_name == 'main')
+    if: |
+      always() &&
+      (github.ref_name == 'main')
+      (needs.get_version.result == 'success') &&
+      (needs.get_version.bumped == 'true') &&
     runs-on: ubuntu-latest
     steps:
       - name: 🛎️  Checkout repository
@@ -127,18 +132,18 @@ jobs:
           git tag -a ${{ needs.get_version.outputs.new_tag }} --force -m "ci(versioning): tagging ${{ needs.get_version.outputs.new_tag }}:${{ inputs.release_type }}"
           git push -f origin ${{ needs.get_version.outputs.new_tag }}
 
-      # - name: 📦   Create a new release from semver tag
-      #   id: release-version
-      #   if: |
-      #     always() &&
-      #     (github.ref_name == 'main') &&
-      #     (!contains('pre', ${{ needs.get_version.outputs.release_type }})) &&
-      #     (contains(fromJSON(${{ needs.get_version.outputs.release_array }}), ${{ needs.get_version.outputs.release_type }}))
-      #   uses: ncipollo/release-action@v1
-      #   with:
-      #     token: ${{ secrets.GITHUB_TOKEN }}
-      #     tag: ${{ needs.get_version.outputs.new_tag }}
-      #     name: ${{ needs.get_version.outputs.release_type }} release ${{ needs.get_version.outputs.new_version }}
-      #     body: ${{ needs.get_version.outputs.changelog }}
-      #     allowUpdates: true
-      #     generateReleaseNotes: true
+      - name: 📦   Create a new release from semver tag
+        id: release-version
+        if: |
+          always() &&
+          (github.ref_name == 'main') &&
+          (!contains('pre', ${{ needs.get_version.outputs.release_type }})) &&
+          (contains(fromJSON(${{ needs.get_version.outputs.release_array }}), ${{ needs.get_version.outputs.release_type }}))
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ needs.get_version.outputs.new_tag }}
+          name: ${{ needs.get_version.outputs.release_type }} release ${{ needs.get_version.outputs.new_version }}
+          body: ${{ needs.get_version.outputs.changelog }}
+          allowUpdates: true
+          generateReleaseNotes: true
