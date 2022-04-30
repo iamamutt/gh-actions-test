@@ -1,5 +1,12 @@
 # Changelog
 
+## `v2.3.0`
+
+
+### Continuous Integration
+
+* **semver:** update files with new version information ([134b272](https://github.com/iamamutt/gh-actions-test/commit/134b272c42519caa2a905f00202360cefae22b10))
+
 ## `v2.2.0`
 
 
