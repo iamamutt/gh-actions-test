@@ -101,6 +101,8 @@ jobs:
             exit 0
           fi
           echo -e "::debug::Committing and pushing:\n$(git status --porcelain)"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
           git add .
           git commit --allow-empty-message --no-edit
           git push origin HEAD:main
