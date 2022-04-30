@@ -62,10 +62,10 @@ jobs:
 
   push_version_file:
     needs: get_version
-    if: |
-      always() &&
-      (needs.get_version.result == 'success') &&
-      (github.ref_name == 'main')
+    # if: |
+    #   always() &&
+    #   (needs.get_version.result == 'success') &&
+    #   (github.ref_name == 'main')
     runs-on: ubuntu-latest
     steps:
       - name: 🛎️  Checkout repository
@@ -86,25 +86,25 @@ jobs:
           [[ ! -f CHANGELOG.md ]] && exit 0
           NEWSEC_STR="## \`${{ needs.get_version.outputs.new_tag }}\`"
           CHANGELOG_STR=$(sed '1d' <<< "${{ needs.get_version.outputs.changelog }}")
+          echo "show log"
+          echo $(printf "%s" "$CHANGELOG_STR")
           sed -i '/Changelog/r'<(printf "\n%s\n%s\n" "$NEWSEC_STR" "$CHANGELOG_STR") CHANGELOG.md
         shell: bash
 
-      - name: Push version changes
-        run: |
-          if [ -z "$(git status --porcelain)" ]; then
-            echo "No versioning file changes."
-            exit 0
-          fi
-          echo -e "::debug::Committing and pushing:\n$(git status --porcelain)"
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add .
-          git commit -m "ci(semver): update files with new version information"
-          git push origin HEAD:main
-        shell: bash
+      # - name: Push version changes
+      #   run: |
+      #     if [ -z "$(git status --porcelain)" ]; then
+      #       echo "No versioning file changes."
+      #       exit 0
+      #     fi
+      #     echo -e "::debug::Committing and pushing:\n$(git status --porcelain)"
+      #     git config --local user.email "github-actions[bot]@users.noreply.github.com"
+      #     git config --local user.name "github-actions[bot]"
+      #     git add .
+      #     git commit -m "ci(semver): update files with new version information"
+      #     git push origin HEAD:main
+      #   shell: bash
 
-    outputs:
-      python-version: ${{ steps.use-python.outputs.python-version }}
 
   create_tag_and_release:
     needs: [get_version, push_version_file]
@@ -119,27 +119,27 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🏷️  Create and push a new semver tag
-        id: push-new-tag
-        shell: bash
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git tag -a ${{ needs.get_version.outputs.new_tag }} --force -m "ci(versioning): tagging ${{ needs.get_version.outputs.new_tag }}:${{ inputs.release_type }}"
-          git push -f origin ${{ needs.get_version.outputs.new_tag }}
+      # - name: 🏷️  Create and push a new semver tag
+      #   id: push-new-tag
+      #   shell: bash
+      #   run: |
+      #     git config --local user.email "github-actions[bot]@users.noreply.github.com"
+      #     git config --local user.name "github-actions[bot]"
+      #     git tag -a ${{ needs.get_version.outputs.new_tag }} --force -m "ci(versioning): tagging ${{ needs.get_version.outputs.new_tag }}:${{ inputs.release_type }}"
+      #     git push -f origin ${{ needs.get_version.outputs.new_tag }}
 
-      - name: 📦   Create a new release from semver tag
-        id: release-version
-        if: |
-          always() &&
-          (github.ref_name == 'main') &&
-          (!contains('pre', ${{ needs.get_version.outputs.release_type }})) &&
-          (contains(fromJSON(${{ needs.get_version.outputs.release_array }}), ${{ needs.get_version.outputs.release_type }}))
-        uses: ncipollo/release-action@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ needs.get_version.outputs.new_tag }}
-          name: ${{ needs.get_version.outputs.release_type }} release ${{ needs.get_version.outputs.new_version }}
-          body: ${{ needs.get_version.outputs.changelog }}
-          allowUpdates: true
-          generateReleaseNotes: true
+      # - name: 📦   Create a new release from semver tag
+      #   id: release-version
+      #   if: |
+      #     always() &&
+      #     (github.ref_name == 'main') &&
+      #     (!contains('pre', ${{ needs.get_version.outputs.release_type }})) &&
+      #     (contains(fromJSON(${{ needs.get_version.outputs.release_array }}), ${{ needs.get_version.outputs.release_type }}))
+      #   uses: ncipollo/release-action@v1
+      #   with:
+      #     token: ${{ secrets.GITHUB_TOKEN }}
+      #     tag: ${{ needs.get_version.outputs.new_tag }}
+      #     name: ${{ needs.get_version.outputs.release_type }} release ${{ needs.get_version.outputs.new_version }}
+      #     body: ${{ needs.get_version.outputs.changelog }}
+      #     allowUpdates: true
+      #     generateReleaseNotes: true
