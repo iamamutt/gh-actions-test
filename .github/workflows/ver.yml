@@ -91,19 +91,19 @@ jobs:
           sed -i '/Changelog/r'<(printf "\n%s\n%s\n" "$NEWSEC_STR" "$CHANGELOG_STR") CHANGELOG.md
         shell: bash
 
-      # - name: Push version changes
-      #   run: |
-      #     if [ -z "$(git status --porcelain)" ]; then
-      #       echo "No versioning file changes."
-      #       exit 0
-      #     fi
-      #     echo -e "::debug::Committing and pushing:\n$(git status --porcelain)"
-      #     git config --local user.email "github-actions[bot]@users.noreply.github.com"
-      #     git config --local user.name "github-actions[bot]"
-      #     git add .
-      #     git commit -m "ci(semver): update files with new version information"
-      #     git push origin HEAD:main
-      #   shell: bash
+      - name: Push version changes
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No versioning file changes."
+            exit 0
+          fi
+          echo -e "::debug::Committing and pushing:\n$(git status --porcelain)"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .
+          git commit -m "ci(semver): update files with new version information"
+          git push origin HEAD:main
+        shell: bash
 
 
   create_tag_and_release:
